@@ -1,0 +1,44 @@
+services:
+  aneeque:
+    build: ./Dockerfile
+    restart: on-failure
+    ports:
+      - 8080
+    environment:
+      - WAIT_HOSTS=postgres:3306
+      - WAIT_HOSTS_TIMEOUT=300
+      - WAIT_SLEEP_INTERVAL=30
+      - WAIT_HOST_CONNECT_TIMEOUT=30
+    depends_on:
+      - postgres
+      - maildev
+      - redis
+  postgres:
+    image: postgres:11.9-alpine
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD: postgres
+      - POSTGRES_USER: postgres
+      - POSTGRES_DB: aneeque_db
+#    volumes:
+#      - db_data:/var/lib/postgresql/data
+    volumes:
+      - db_data:/docker-entrypoint-initdb.d/init.sh
+  maildev:
+    image: maildev/maildev
+    command: bin/maildev -w 80 -s 25 --incoming-user ${SMTP_USER} --incoming-pass ${SMTP_PASSWORD}
+    ports:
+      - "1025:25"
+      - "8025:80"
+    environment:
+      RELAY_SECURE: "true"
+      RELAY_HOST: localhost
+      RELAY_PORT: 1025
+      RELAY_USER: aneeque
+      RELAY_PWD: aneeque
+
+  redis:
+    image: redis
+
+volumes:
+  db_data: {}
